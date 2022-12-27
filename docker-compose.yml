@@ -1,0 +1,59 @@
+version: '3.8'
+services:
+  nginx:
+    image: nginx:1.23
+    ports:
+      - 80:80
+      - 443:80
+    volumes:
+      - './api:/var/www/php'
+      - './client:/var/www/nuxt'
+      - './docker/nginx/conf.d:/etc/nginx/conf.d'
+    networks:
+      - app-network
+    # command: chown -R 33:33 /var/www
+    depends_on:
+      - php
+      - nuxt
+      - mongodb
+
+  php:
+    build: './docker/php'
+    volumes:
+      - './api:/var/www/php'
+    networks:
+      - app-network
+
+  mongodb:
+    image: mongo:6.0
+    container_name: mongo
+    restart: always
+    environment:
+      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+    ports:
+        - 27017:27017
+    volumes:
+      - mongodb:/data/db
+      - ./docker/mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - app-network
+
+  nuxt:
+    build: ./client
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./client:/var/www/nuxt
+    networks:
+      - app-network
+
+#Docker Networks
+networks:
+  app-network:
+    driver: bridge
+#Volumes
+volumes:
+  mongodb:
+    driver: local
